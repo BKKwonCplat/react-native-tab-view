@@ -11,6 +11,7 @@ import type {
   EventEmitterProps,
   PagerProps,
 } from './types';
+import { useState } from 'react';
 
 const AnimatedViewPager = Animated.createAnimatedComponent(ViewPager);
 
@@ -50,7 +51,8 @@ export default function PagerViewAdapter<T extends Route>({
   const pagerRef = React.useRef<ViewPager>();
   const indexRef = React.useRef<number>(index);
   const navigationStateRef = React.useRef(navigationState);
-
+  const [isClickAbusing,setIsClickAbusing]=React.useState<number[]>([0,0]);
+  const [lastSleepTime,setLastSleepTime]=useState<any>(new Date().getTime());
   const position = useAnimatedValue(index);
   const offset = useAnimatedValue(0);
 
@@ -58,13 +60,17 @@ export default function PagerViewAdapter<T extends Route>({
     navigationStateRef.current = navigationState;
   });
 
-  const jumpTo = React.useCallback((key: string) => {
+  const jumpTo = (key: string) => {
     const index = navigationStateRef.current.routes.findIndex(
       (route: { key: string }) => route.key === key
     );
-
-    pagerRef.current?.setPage(index);
-  }, []);
+    let isAbleToJump = (new Date().getTime() - lastSleepTime) > 300;
+    if(isAbleToJump && index!==indexRef.current && (isClickAbusing.join("")!==(index+""+indexRef.current)) ){
+      pagerRef.current?.setPage(index);
+      setIsClickAbusing([index,indexRef.current]);
+      setLastSleepTime(new Date().getTime());
+    }
+  };
 
   React.useEffect(() => {
     if (keyboardDismissMode === 'auto') {
